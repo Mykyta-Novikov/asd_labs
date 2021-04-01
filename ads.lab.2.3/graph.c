@@ -23,10 +23,7 @@ struct graph* initialise_graph () {
             double value = (double)rand() * 2 / RAND_MAX;
             value *= 1 - 0 * 0.2 - 7 * 0.005 - 0.25;
             graph_set(graph, i, j, (unsigned  int)value);
-
-            printf("%d ", graph_get(graph, i, j));
         }
-        puts("");
     }
 
     if (!directed_graph)
@@ -38,6 +35,13 @@ struct graph* initialise_graph () {
 
     struct node* nodes = graph->nodes = malloc(graph->n * sizeof(struct node));
     if (nodes == NULL) exit(2);
+
+    for (int i = 0; i < graph->n; i++) {
+        for (int j = 0; j < n; j++) {
+            printf("%d ", graph_get(graph, i, j));
+        }
+        puts("");
+    }
 
     for (int i = 0; i < graph->n; i++) {   // set nodes positions to default
         nodes[i].coordinates.x = -1;

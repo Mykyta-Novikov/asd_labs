@@ -10,6 +10,7 @@ void draw_edge_segment (HDC hdc, struct edge_shift* shift, struct coordd* vector
 
 void draw_arrow (HDC hdc, struct coordd *vector, struct coord *arrow_end);
 
+/**********************************************************************************************************************/
 
 void draw_node (HDC hdc, struct node *node) {
     SelectObject(hdc, get_nodes_pen());
@@ -18,7 +19,7 @@ void draw_node (HDC hdc, struct node *node) {
     AngleArc(hdc, node->coordinates.x, node->coordinates.y, NODE_RADIUS, 0, 360);
 
     char text[snprintf(NULL, 0, "%d", node->n)];
-    sprintf(text, "%d", node->n);
+    sprintf(text, "%d", node->n);                                       // convert string to text
 
     RECT text_boundaries = {
             .right = node->coordinates.x + NODE_TEXT_WIDTH_BOUNDARY,
@@ -31,6 +32,9 @@ void draw_node (HDC hdc, struct node *node) {
 }
 
 /**********************************************************************************************************************/
+/*
+ * Prepares data for driving of an edge between 2 nodes.
+ */
 
 void render_edge (HDC hdc, int start_index, int end_index, struct graph* graph) {
     struct coord start = graph->nodes[start_index].coordinates,
@@ -68,7 +72,7 @@ void render_edge (HDC hdc, int start_index, int end_index, struct graph* graph) 
     }
 
 
-    unsigned int additional_margin = 0;
+    unsigned int additional_margin = 0;   // determine whether there are more than 2 nodes in line
     if (start_index - end_index == NODES_COUNT / 2 && end_index != 0)           // if nodes are opposite
         additional_margin = max(graph_get(graph, 0, start_index) + graph_get(graph, start_index, 0),
                                 graph_get(graph, 0, end_index) + graph_get(graph, end_index, 0));
@@ -79,7 +83,9 @@ void render_edge (HDC hdc, int start_index, int end_index, struct graph* graph) 
 }
 
 /**********************************************************************************************************************/
-
+/*
+ * Draws parallel edges between 2 nodes.
+ */
 void draw_edge (HDC hdc, struct coord* start, struct coord* end, struct coordd* vector, struct edge_shift shifts[],
         int shifts_count, unsigned int forth, unsigned int back, unsigned int additional_margin) {
     SelectObject(hdc, get_edges_pen());
@@ -100,7 +106,7 @@ void draw_edge (HDC hdc, struct coord* start, struct coord* end, struct coordd* 
         MoveToEx(hdc, start->x, start->y, NULL);
         LineTo(hdc, current_edge_start.x, current_edge_start.y);
 
-        if (shifts_count == 1) {
+        if (shifts_count == 1) {                // if there is only 1 shift segment, draw entire edge as it
             shifts[0].start.x = (int) (start->x + vector->x * NODE_MARGIN);
             shifts[0].start.y = (int) (start->y + vector->y * NODE_MARGIN);
 
@@ -122,9 +128,7 @@ void draw_edge (HDC hdc, struct coord* start, struct coord* end, struct coordd* 
                     .x = end->x - current_edge_end.x,
                     .y = end->y - current_edge_end.y
             };
-            double length = sqrt(arrow_vector.x * arrow_vector.x + arrow_vector.y * arrow_vector.y);
-            arrow_vector.x /= length;
-            arrow_vector.y /= length;
+            arrow_vector = normalize_vector(arrow_vector);
 
             draw_arrow(hdc, &arrow_vector, end);
         }
@@ -141,6 +145,9 @@ void draw_edge (HDC hdc, struct coord* start, struct coord* end, struct coordd* 
 }
 
 /**********************************************************************************************************************/
+/*
+ * Draws edge segment corresponding to particular shift.
+ */
 
 void draw_edge_segment (HDC hdc, struct edge_shift* shift, struct coordd* vector, int current_edge_margin) {
     LineTo(hdc, (int) (shift->start.x + vector->y * current_edge_margin),
@@ -165,9 +172,12 @@ void draw_edge_segment (HDC hdc, struct edge_shift* shift, struct coordd* vector
 }
 
 /**********************************************************************************************************************/
+/*
+ * Draws an arrow directed by vector and with the end in arrow_end point.
+ */
 
 void draw_arrow (HDC hdc, struct coordd* vector, struct coord* arrow_end) {
-    if (!directed_graph)
+    if (!directed_graph)    // do not draw arrow if graph is not directed
         return;
 
     SelectObject(hdc, get_edges_pen());
@@ -185,6 +195,9 @@ void draw_arrow (HDC hdc, struct coordd* vector, struct coord* arrow_end) {
 }
 
 /**********************************************************************************************************************/
+/*
+ * Determines shift of the edge between 2 nodes around third.
+ */
 
 boolean get_edge_shift (struct coordd* vector, struct coord* start,
                         double max_length, struct coord* node, struct edge_shift* result) {
@@ -223,6 +236,9 @@ boolean get_edge_shift (struct coordd* vector, struct coord* start,
 }
 
 /**********************************************************************************************************************/
+/*
+ * Draws loop edge as an arc of circle.
+ */
 
 void draw_loop (HDC hdc, struct node* node, struct graph* graph) {
     struct coordd loop_vector;

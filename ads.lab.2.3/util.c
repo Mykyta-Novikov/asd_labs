@@ -35,6 +35,9 @@ HPEN get_edges_pen() {
 }
 
 /**********************************************************************************************************************/
+/*
+ * Function for normalizing a vector (dividing by its length).
+ */
 
 struct coordd normalize_vector (struct coordd vector) {
     double length = sqrt(vector.x * vector.x + vector.y * vector.y);
