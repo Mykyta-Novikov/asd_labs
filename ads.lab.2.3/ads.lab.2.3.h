@@ -4,21 +4,25 @@
 #include <stdio.h>
 
 
-const int NODES_COUNT = 11;
-
 const char* PROGRAM_NAME = "A";
 const char* WINDOW_NAME = "B";
-const unsigned int MATRIX_SEED = 123456;
+const unsigned int MATRIX_SEED = 417;
+const int NODES_COUNT = 11;
 
 const int WINDOW_HEIGHT = 200;
 const int WINDOW_WIDTH = 200;
 
-const int DRAWING_MARGIN = 10;
-const int NODE_RADIUS = 20;
+const int DRAWING_MARGIN = 30;
+const int NODE_RADIUS = 30;
 const int NODE_MARGIN = 40;
-const int EDGE_MARGIN = 10;
+const int EDGE_MARGIN = 20;
+const int ARROW_LENGTH = 15;
+const int ARROW_WIDTH = 5;
 const int NODE_TEXT_HEIGHT_BOUNDARY = 10;
 const int NODE_TEXT_WIDTH_BOUNDARY = 10;
+const int LOOP_CENTER_DISTANCE = 20;
+const int LOOP_RADIUS = 25;
+const int CENTRAL_LOOP_ANGLE = 135;
 
 
 struct coord {
@@ -56,9 +60,14 @@ void render_graph (HDC hdc, struct graph* graph, int height, int width);
 
 unsigned int graph_get (struct graph* graph, int i, int j);
 void graph_set (struct graph* graph, int i, int j, unsigned int value);
+struct coordd normalize_vector (struct coordd vector);
 
 void draw_node (HDC hdc, struct node *node);
 void render_edge (HDC hdc, int start_index, int end_index, struct graph* graph);
+void draw_loop (HDC hdc, struct node* node, struct graph* graph);
 
 HPEN get_nodes_pen ();
 HPEN get_edges_pen ();
+
+
+boolean directed_graph;

@@ -33,3 +33,14 @@ HPEN get_edges_pen() {
         edges_pen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
     return edges_pen;
 }
+
+/**********************************************************************************************************************/
+
+struct coordd normalize_vector (struct coordd vector) {
+    double length = sqrt(vector.x * vector.x + vector.y * vector.y);
+    struct coordd result = {
+            .x = vector.x / length,
+            .y = vector.y / length
+    };
+    return result;
+}

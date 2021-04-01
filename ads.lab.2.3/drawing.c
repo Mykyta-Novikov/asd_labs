@@ -3,10 +3,12 @@
 boolean get_edge_shift (struct coordd* vector, struct coord* start,
                         double max_length,  struct coord* node, struct edge_shift* result);
 
-void draw_edge (HDC hdc, struct coord* start, struct coord* end, struct coordd* vector,
-                struct edge_shift* shifts, int shifts_count, unsigned int forth, unsigned int back);
+void draw_edge (HDC hdc, struct coord* start, struct coord* end, struct coordd* vector, struct edge_shift shifts[],
+                int shifts_count, unsigned int forth, unsigned int back, unsigned int additional_margin);
 
 void draw_edge_segment (HDC hdc, struct edge_shift* shift, struct coordd* vector, int current_edge_margin);
+
+void draw_arrow (HDC hdc, struct coordd *vector, struct coord *arrow_end);
 
 
 void draw_node (HDC hdc, struct node *node) {
@@ -33,16 +35,12 @@ void draw_node (HDC hdc, struct node *node) {
 void render_edge (HDC hdc, int start_index, int end_index, struct graph* graph) {
     struct coord start = graph->nodes[start_index].coordinates,
             end = graph->nodes[end_index].coordinates;
-    struct coordd vector;
-    double length;
-    {
-        int x = end.x - start.x,
-                y = end.y - start.y;
-        length = sqrt(x * x + y * y);
-
-        vector.x = x / length;
-        vector.y = y / length;
-    }
+    struct coordd vector = {
+          .x = end.x - start.x,
+          .y = end.y - start.y
+    };
+    double length = sqrt(vector.x * vector.x + vector.y * vector.y);
+    vector = normalize_vector(vector);
 
     struct coord start_point = {
             .x = (int) (start.x + vector.x * NODE_RADIUS),
@@ -69,41 +67,38 @@ void render_edge (HDC hdc, int start_index, int end_index, struct graph* graph) 
         }
     }
 
+
+    unsigned int additional_margin = 0;
+    if (start_index - end_index == NODES_COUNT / 2 && end_index != 0)           // if nodes are opposite
+        additional_margin = max(graph_get(graph, 0, start_index) + graph_get(graph, start_index, 0),
+                                graph_get(graph, 0, end_index) + graph_get(graph, end_index, 0));
+
     draw_edge(hdc, &start_point, &end_point, &vector, shifts, shifts_count,
-              graph_get(graph, start_index, end_index), graph_get(graph, end_index, start_index));
+              directed_graph ? graph_get(graph, start_index, end_index) : 0,
+              graph_get(graph, end_index, start_index), additional_margin);
 }
 
 /**********************************************************************************************************************/
 
-void draw_edge (HDC hdc, struct coord* start, struct coord* end, struct coordd* vector,
-                struct edge_shift shifts[], int shifts_count, unsigned int forth, unsigned int back) {
+void draw_edge (HDC hdc, struct coord* start, struct coord* end, struct coordd* vector, struct edge_shift shifts[],
+        int shifts_count, unsigned int forth, unsigned int back, unsigned int additional_margin) {
     SelectObject(hdc, get_edges_pen());
 
-    for (int edge_number = 0; edge_number < forth + back; edge_number++) {
-        int current_edge_margin = (int)(EDGE_MARGIN * (edge_number - (forth + back - 1) / 2.0));
+    for (int edge_number = (int)additional_margin; edge_number < forth + back + additional_margin; edge_number++) {
+        int current_edge_margin = (int)(EDGE_MARGIN * (edge_number - (forth + back + additional_margin - 1) / 2.0));
 
         struct coord current_edge_start = {
                 .x = (int) (start->x + vector->x * NODE_MARGIN + vector->y * current_edge_margin),
                 .y = (int) (start->y + vector->y * NODE_MARGIN - vector->x * current_edge_margin)
         };
-
-        if (edge_number <= forth) {
-            struct coord arrow_vector = {
-
-            };
-            draw_arrow(arrow_vector, end);
-        }
-        else {
-            struct coord arrow_vector = {
-
-            };
-            draw_arrow(arrow_vector, start);
-        }
+        struct coord current_edge_end = {
+                .x = (int) (end->x - vector->x * NODE_MARGIN + vector->y * current_edge_margin),
+                .y = (int) (end->y - vector->y * NODE_MARGIN - vector->x * current_edge_margin)
+        };
 
 
         MoveToEx(hdc, start->x, start->y, NULL);
-        LineTo(hdc, (int) (start->x + vector->x * NODE_MARGIN + vector->y * current_edge_margin),
-        );
+        LineTo(hdc, current_edge_start.x, current_edge_start.y);
 
         if (shifts_count == 1) {
             shifts[0].start.x = (int) (start->x + vector->x * NODE_MARGIN);
@@ -118,9 +113,30 @@ void draw_edge (HDC hdc, struct coord* start, struct coord* end, struct coordd* 
             for (int i = 0; i < shifts_count; i++)
                 draw_edge_segment (hdc, &shifts[i], vector, current_edge_margin);
 
-        LineTo(hdc, (int) (end->x - vector->x * NODE_MARGIN + vector->y * current_edge_margin),
-               (int) (end->y - vector->y * NODE_MARGIN - vector->x * current_edge_margin));
+        LineTo(hdc, current_edge_end.x, current_edge_end.y);
         LineTo(hdc, end->x, end->y);
+
+
+        if (edge_number < forth) {
+            struct coordd arrow_vector = {
+                    .x = end->x - current_edge_end.x,
+                    .y = end->y - current_edge_end.y
+            };
+            double length = sqrt(arrow_vector.x * arrow_vector.x + arrow_vector.y * arrow_vector.y);
+            arrow_vector.x /= length;
+            arrow_vector.y /= length;
+
+            draw_arrow(hdc, &arrow_vector, end);
+        }
+        else {
+            struct coordd arrow_vector = {
+                    .x = start->x - current_edge_start.x,
+                    .y = start->y - current_edge_start.y
+            };
+            arrow_vector = normalize_vector(arrow_vector);
+
+            draw_arrow(hdc, &arrow_vector, start);
+        }
     }
 }
 
@@ -146,6 +162,26 @@ void draw_edge_segment (HDC hdc, struct edge_shift* shift, struct coordd* vector
     };
     PolyBezierTo(hdc, points, 3);
     SelectObject(hdc, get_edges_pen());
+}
+
+/**********************************************************************************************************************/
+
+void draw_arrow (HDC hdc, struct coordd* vector, struct coord* arrow_end) {
+    if (!directed_graph)
+        return;
+
+    SelectObject(hdc, get_edges_pen());
+    MoveToEx(hdc, arrow_end->x, arrow_end->y, NULL);
+
+    struct coord arrow_start = {
+            .x = (int)(arrow_end->x - vector->x * ARROW_LENGTH),
+            .y = (int)(arrow_end->y - vector->y * ARROW_LENGTH)
+    };
+
+    LineTo(hdc, (int)(arrow_start.x - vector->y * ARROW_WIDTH), (int)(arrow_start.y + vector->x * ARROW_WIDTH));
+    LineTo(hdc, (int)(arrow_start.x + vector->y * ARROW_WIDTH), (int)(arrow_start.y - vector->x * ARROW_WIDTH));
+    LineTo(hdc, arrow_end->x, arrow_end->y);
+
 }
 
 /**********************************************************************************************************************/
@@ -184,4 +220,54 @@ boolean get_edge_shift (struct coordd* vector, struct coord* start,
     result->end.y = (int)(intersection.y + circle_distance * vector->y);
 
     return 1;
+}
+
+/**********************************************************************************************************************/
+
+void draw_loop (HDC hdc, struct node* node, struct graph* graph) {
+    struct coordd loop_vector;
+    if (node->n == 0) {
+        loop_vector.x = cos(CENTRAL_LOOP_ANGLE);
+        loop_vector.y = sin(CENTRAL_LOOP_ANGLE);
+    }
+    else {
+        struct coordd raw_loop_vector = {
+                .x = node->coordinates.x - graph->nodes[0].coordinates.x,
+                .y = node->coordinates.y - graph->nodes[0].coordinates.y
+        };
+
+        loop_vector = normalize_vector (raw_loop_vector);
+    }
+
+    struct coordd loop_center = {
+            .x = node->coordinates.x + loop_vector.x * (NODE_RADIUS + LOOP_CENTER_DISTANCE),
+            .y = node->coordinates.y + loop_vector.y * (NODE_RADIUS + LOOP_CENTER_DISTANCE)
+    };
+
+    double loop_segment = sqrt(LOOP_RADIUS * LOOP_RADIUS - LOOP_CENTER_DISTANCE * LOOP_CENTER_DISTANCE);
+    struct coord loop_start = {
+            .x = (int)(node->coordinates.x + loop_vector.x * (NODE_RADIUS + LOOP_RADIUS - LOOP_CENTER_DISTANCE)
+                    - loop_vector.y * loop_segment),
+            .y = (int)(node->coordinates.y + loop_vector.y * (NODE_RADIUS + LOOP_RADIUS - LOOP_CENTER_DISTANCE)
+                    + loop_vector.x * loop_segment)
+    },
+    loop_end = {
+            .x = (int)(node->coordinates.x + loop_vector.x * (NODE_RADIUS + LOOP_RADIUS - LOOP_CENTER_DISTANCE)
+                    + loop_vector.y * loop_segment),
+            .y = (int)(node->coordinates.y + loop_vector.y * (NODE_RADIUS + LOOP_RADIUS - LOOP_CENTER_DISTANCE)
+                    - loop_vector.x * loop_segment)
+    };
+
+    SelectObject(hdc, get_edges_pen());
+    Arc(hdc, (int)(loop_center.x - LOOP_RADIUS), (int)(loop_center.y - LOOP_RADIUS),
+        (int)(loop_center.x + LOOP_RADIUS), (int)(loop_center.y + LOOP_RADIUS),
+          loop_start.x, loop_start.y, loop_end.x, loop_end.y);
+
+    struct coordd loop_arrow_vector = {
+            .x = loop_end.y - loop_center.y,
+            .y = -(loop_end.x - loop_center.x)
+    };
+    loop_arrow_vector = normalize_vector(loop_arrow_vector);
+
+    draw_arrow(hdc, &loop_arrow_vector, &loop_end);
 }

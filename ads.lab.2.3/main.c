@@ -1,4 +1,5 @@
 ﻿#include "ads.lab.2.3.h"
+#include <string.h>
 #include "graph.c"
 #include "util.c"
 #include "drawing.c"
@@ -8,6 +9,7 @@ ATOM registerWndClass (HINSTANCE hInstance);
 boolean initWindow (HINSTANCE hInstance, int nCmdShow);
 LRESULT CALLBACK wndProc (HWND, UINT, WPARAM, LPARAM);
 
+
 struct graph* graph;
 
 /**********************************************************************************************************************/
@@ -16,6 +18,8 @@ int APIENTRY WinMain (_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPSTR    lpCmdLine,
                      _In_ int       nCmdShow) {
+    directed_graph = !(strcasecmp(lpCmdLine, "-u") == 0);
+
     graph = initialise_graph();
 
     if (!registerWndClass(hInstance))
@@ -57,7 +61,7 @@ ATOM registerWndClass (HINSTANCE hInstance) {
             .cbClsExtra = 0,
             .cbWndExtra = 0,
     };
-    
+
     return RegisterClass(&wndClass);
 }
 

@@ -14,25 +14,36 @@ struct graph* initialise_graph () {
 
     int n = graph->n = NODES_COUNT;
 
-    unsigned int* matrix = graph->matrix = malloc(graph->n * graph->n * sizeof(unsigned int));
+    unsigned int* matrix = graph->matrix = malloc(n * n * sizeof(unsigned int));
     if (matrix == NULL) exit(2);
 
     srand(MATRIX_SEED); // NOLINT(cert-msc51-cpp)
     for (int i = 0; i < n; i++) {                // initialise edges structure with random values
         for (int j = 0; j < n; j++) {
-            graph_set(graph, i, j, (unsigned int) round((double) rand() / RAND_MAX));
+            double value = (double)rand() * 2 / RAND_MAX;
+            value *= 1 - 0 * 0.2 - 7 * 0.005 - 0.25;
+            graph_set(graph, i, j, (unsigned  int)value);
+
             printf("%d ", graph_get(graph, i, j));
         }
         puts("");
     }
 
+    if (!directed_graph)
+        for (int i = 0; i < graph->n; i++)
+            for (int j = 0; j < n; j++)
+                if (graph_get(graph, i, j))
+                    graph_set(graph, j, i, 1);
 
-    struct node* coordinates = graph->nodes = malloc(graph->n * sizeof(struct coord));
-    if (coordinates == NULL) exit(2);
+
+    struct node* nodes = graph->nodes = malloc(graph->n * sizeof(struct node));
+    if (nodes == NULL) exit(2);
 
     for (int i = 0; i < graph->n; i++) {   // set nodes positions to default
-        graph->nodes[i].coordinates.x = -1;
-        graph->nodes[i].coordinates.y = -1;
+        nodes[i].coordinates.x = -1;
+        nodes[i].coordinates.y = -1;
+
+        nodes[i].n = i;
     }
 
     return graph;
@@ -56,9 +67,12 @@ void render_graph (HDC hdc, struct graph* graph, int height, int width) {
     for (int i = 0; i < graph->n; i++) {
         draw_node(hdc, &graph->nodes[i]);
 
-        for (int j = 0; j < i; j++) {
+        for (int j = 0; j <= i; j++) {
             if (graph_get(graph, i, j) == 1 || graph_get(graph, j, i) == 1) {
-                render_edge(hdc, i, j, graph);
+                if (i == j)
+                    draw_loop(hdc, &graph->nodes[i], graph);
+                else
+                    render_edge(hdc, i, j, graph);
             }
         }
     }
