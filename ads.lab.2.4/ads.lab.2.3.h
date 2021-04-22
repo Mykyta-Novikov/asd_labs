@@ -4,8 +4,8 @@
 #include <stdio.h>
 
 
-const char* PROGRAM_NAME = "A";
-const char* WINDOW_NAME = "B";
+const char* PROGRAM_NAME = "Lab 2.4";
+const char* WINDOW_NAME = "Lab 2.4";
 const unsigned int MATRIX_SEED = 417;
 const int NODES_COUNT = 11;
 
@@ -60,6 +60,9 @@ void render_graph (HDC hdc, struct graph* graph, int height, int width);
 
 unsigned int graph_get (struct graph* graph, int i, int j);
 void graph_set (struct graph* graph, int i, int j, unsigned int value);
+void matrix_multiply (unsigned int* matrix, int size, unsigned int multiplier);
+void matrix_symmetry (unsigned int* matrix, int size);
+void print_matrix (unsigned int* matrix, int size);
 struct coordd normalize_vector (struct coordd vector);
 
 void draw_node (HDC hdc, struct node *node);
@@ -71,3 +74,5 @@ HPEN get_edges_pen ();
 
 
 boolean directed_graph;
+boolean use_modified_graph;
+boolean use_condensation_graph;

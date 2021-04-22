@@ -13,7 +13,34 @@ void graph_set (struct graph *graph, int i, int j, unsigned int value) {
     graph->matrix[i * graph->n + j] = value;
 }
 
+/**********************************************************************************************************************/
+/*
+ * Arithmetic operations with matrices;
+ */
 
+void matrix_multiply (unsigned int* matrix, int size, unsigned int multiplier) {
+    for (int i = 0; i < size; i++)
+        for (int j = 0; j < size; j++)
+            matrix[i * size + j] *= multiplier;
+}
+
+void matrix_symmetry (unsigned int* matrix, int size) {
+    for (int i = 0; i < size; i++)
+        for (int j = 0; j < size; j++)
+            if (matrix[i * size + j])
+                matrix[i * size + j] = 1;
+}
+
+/**********************************************************************************************************************/
+
+void print_matrix (unsigned int* matrix, int size) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            printf("%d ", matrix[i * size + j]);
+        }
+        puts("");
+    }
+}
 
 /**********************************************************************************************************************/
 /*

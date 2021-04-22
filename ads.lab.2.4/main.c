@@ -19,6 +19,14 @@ int APIENTRY WinMain (_In_ HINSTANCE hInstance,
                      _In_ LPSTR    lpCmdLine,
                      _In_ int       nCmdShow) {
     directed_graph = !(strcasecmp(lpCmdLine, "-u") == 0);
+    if (!strcasecmp(lpCmdLine, "-m")) {
+        directed_graph = 1;
+        use_modified_graph = 1;
+    }
+    else if (!strcasecmp(lpCmdLine, "-c")) {
+        directed_graph = 1;
+        use_condensation_graph = 1;
+    }
 
     graph = initialise_graph();
 
