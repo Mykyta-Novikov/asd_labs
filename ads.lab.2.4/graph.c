@@ -6,7 +6,7 @@ void print_degrees (struct graph *graph);
 void print_paths(const unsigned int* matrix, int size);
 void get_reachability_matrix (unsigned int* matrix, int size, unsigned int* result);
 void get_components (const unsigned int* reachability_matrix, int size, unsigned int* result, int* result_count);
-void print_components (const unsigned int* result, int size, int result_count);
+void print_components (const unsigned int* components, int size, int components_count);
 void get_condensation_matrix (const unsigned int* matrix, int size, const unsigned int* components,
                               int components_count, unsigned int* result);
 
@@ -29,11 +29,12 @@ struct graph* initialise_graph () {
     for (int i = 0; i < n; i++) {                // initialise edges structure with random values
         for (int j = 0; j < n; j++) {
             double value = (double)rand() * 2 / RAND_MAX;
+            value *= 1 - 2 * 0.01 - 9 * 0.01 - 0.3;
             graph_set(graph, i, j, (unsigned  int)value);
         }
     }
 
-    matrix_multiply(matrix, n, (unsigned int)(abs((int)(2 * (1 - 1 * 0.01 - 7 * 0.01 - 0.3)))));
+    //matrix_multiply(matrix, n, (unsigned int)(abs((int)(2 * (1 - 2 * 0.01 - 9 * 0.01 - 0.4)))));
     if (!directed_graph)
         matrix_symmetry(matrix, n);
 
@@ -53,7 +54,7 @@ struct graph* initialise_graph () {
         for (int j = 0; j < n; j++)
             modified_matrix[i * n + j] = graph_get(graph, i, j);
 
-    matrix_multiply(modified_matrix, n, (unsigned int)(2 * (1 - 1 * 0.005 - 7 * 0.005 - 0.27)));
+    matrix_multiply(modified_matrix, n, 1);
 
     puts("\nModified matrix:");
     print_matrix(modified_matrix, n);
@@ -84,7 +85,7 @@ struct graph* initialise_graph () {
     get_components(reachability_matrix, n, components, &component_count);
 
     puts("\nComponents:");
-    print_components(reachability_matrix, n, component_count);
+    print_components(components, n, component_count);
 
     unsigned int* condensation_matrix = malloc(n * n * sizeof(unsigned int));
     if (condensation_matrix == NULL) exit(2);
@@ -323,21 +324,20 @@ void get_reachability_matrix (unsigned int* matrix, int size, unsigned int* resu
 void get_components (const unsigned int* reachability_matrix, int size, unsigned int* result, int* result_count) {
     unsigned int components_matrix[size][size];
     for (int i = 0; i < size; i++)
-        for (int j = 0; j < size; j++) {
-            components_matrix[i][j] = 0;
-            for (int k = 0; k < size; k++)
-                components_matrix[i][j] += reachability_matrix[k * size + i] * reachability_matrix[k * size + j];
-            components_matrix[i][j] = components_matrix[i][j] ? 1 : 0;
-        }
+        for (int j = 0; j < size; j++)
+            components_matrix[i][j] = reachability_matrix[i * size + j] * reachability_matrix[j * size + i] ? 1 : 0;
 
     boolean is_included[size];
     for (int i = 0; i < size; i++)
         is_included[i] = 0;
 
+    for (int i = 0; i < size; i++)
+        for (int j = 0; j < size; j++)
+            result[i * size + j] = 0;
+
     for (int i = 0; i < size; i++) {
         if (is_included[i]) continue;
         is_included[i] = 1;
-        (*result_count)++;
         result[*result_count * size + i] = 1;
 
         for (int j = 0; j < size; j++) {
@@ -347,16 +347,17 @@ void get_components (const unsigned int* reachability_matrix, int size, unsigned
                 result[*result_count * size + j] = 1;
             }
         }
+        (*result_count)++;
     }
 }
 
 /**********************************************************************************************************************/
 
-void print_components (const unsigned int* result, int size, int result_count) {
-    for (int i = 0; i < result_count; i++) {
+void print_components (const unsigned int* components, int size, int components_count) {
+    for (int i = 0; i < components_count; i++) {
         printf("%d:  ", i);
         for (int j = 0; j < size; j++)
-            if (result[i * size + j])
+            if (components[i * size + j])
                 printf("%d ", j);
         puts("");
     }
@@ -369,13 +370,16 @@ void get_condensation_matrix (const unsigned int* matrix, int size, const unsign
 
     for (int i = 0; i < components_count; i++) {
         for (int j = 0; j < components_count; j++) {
-            if (i == j) continue;
+            if (i == j) {
+                result[i * components_count + j] = 0;
+                continue;
+            }
             boolean has_connection = 0;
 
             for (int k = 0; k < size; k++) {
-                if (components[i * size + k]) continue;
+                if (!components[i * size + k]) continue;
                 for (int l = 0; l < size; l++) {
-                    if (components[j * size + l]) continue;
+                    if (!components[j * size + l]) continue;
 
                     if (matrix[k * size + l]) {
                         has_connection = 1;

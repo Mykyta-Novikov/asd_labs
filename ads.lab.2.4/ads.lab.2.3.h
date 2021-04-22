@@ -6,7 +6,7 @@
 
 const char* PROGRAM_NAME = "Lab 2.4";
 const char* WINDOW_NAME = "Lab 2.4";
-const unsigned int MATRIX_SEED = 417;
+const unsigned int MATRIX_SEED = 429;
 const int NODES_COUNT = 11;
 
 const int WINDOW_HEIGHT = 200;
