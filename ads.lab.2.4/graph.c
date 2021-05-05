@@ -269,12 +269,12 @@ void print_paths(const unsigned int* matrix, int size) {
 
             printf("%d ", i);
             for (int k = 0; k < size; k++)
-                if (pow2[i][k] && matrix[k * size + j]) {
+                if (matrix[i * size + k] && pow2[k][j]) {
                     printf("%d ", k);
                     break;
                 }
             for (int k = 0; k < size; k++)
-                if (matrix[i * size + k] && pow2[k][j]) {
+                if (pow2[i][k] && matrix[k * size + j]) {
                     printf("%d ", k);
                     break;
                 }
