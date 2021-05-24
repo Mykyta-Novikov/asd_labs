@@ -1,0 +1,164 @@
+#pragma once
+
+
+/*
+ * Setter and getter for values of graph's matrix.
+ */
+
+unsigned int graph_get (struct graph *graph, int i, int j) {
+    return graph->matrix[i * graph->n + j];
+}
+
+void graph_set (struct graph *graph, int i, int j, unsigned int value) {
+    graph->matrix[i * graph->n + j] = value;
+}
+
+
+
+/**********************************************************************************************************************/
+/*
+ * Singleton getters of pens.
+ */
+
+HPEN nodes_pen;
+HPEN active_nodes_pen;
+HPEN inactive_nodes_pen;
+HPEN get_nodes_pen (enum drawing_style style) {
+    HPEN pen;
+    switch (style) {
+        case STANDART:
+            if (nodes_pen == NULL)
+                nodes_pen = CreatePen(PS_SOLID, 2, RGB(50, 0, 255));
+            pen = nodes_pen;
+            break;
+        case ACTIVE:
+            if (active_nodes_pen == NULL)
+                active_nodes_pen = CreatePen(PS_SOLID, 3, RGB(50, 0, 255));
+            pen = active_nodes_pen;
+            break;
+        case INACTIVE:
+            if (inactive_nodes_pen == NULL)
+                inactive_nodes_pen = CreatePen(PS_SOLID, 1, RGB(90, 90, 150));
+            pen = inactive_nodes_pen;
+            break;
+        default:
+            exit(3);
+    }
+    return pen;
+}
+
+HPEN edges_pen;
+HPEN active_edges_pen;
+HPEN highlighted_edges_pen;
+HPEN inactive_edges_pen;
+HPEN get_edges_pen (enum drawing_style style) {
+    HPEN pen;
+    switch (style) {
+        case STANDART:
+            if (edges_pen == NULL)
+                edges_pen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+            pen = edges_pen;
+            break;
+        case ACTIVE:
+            if (active_edges_pen == NULL)
+                active_edges_pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
+            pen = active_edges_pen;
+            break;
+        case HIGHLIGHTED:
+            if (highlighted_edges_pen == NULL)
+                highlighted_edges_pen = CreatePen(PS_SOLID, 3, RGB(60, 60, 10));
+            pen = highlighted_edges_pen;
+            break;
+        case INACTIVE:
+            if (inactive_edges_pen == NULL)
+                inactive_edges_pen = CreatePen(PS_SOLID, 1, RGB(150, 150, 150));
+            pen = inactive_edges_pen;
+            break;
+        default:
+            exit(3);
+    }
+    return pen;
+}
+
+/**********************************************************************************************************************/
+/*
+ * Function for normalizing a vector (dividing by its length).
+ */
+
+struct coord normalize_vector (struct coord vector) {
+    double length = sqrt(vector.x.d * vector.x.d + vector.y.d * vector.y.d);
+    struct coord result = {
+            .x.d = vector.x.d / length,
+            .y.d = vector.y.d / length
+    };
+    return result;
+}
+
+/**********************************************************************************************************************/
+
+struct search_step* search_step_create (int size, struct search_step* old_step) {
+    struct search_step* new_step = malloc(sizeof(struct search_step) + size * sizeof(int));
+    if (new_step == NULL) exit(2);
+
+    if (old_step != NULL) {
+        int count = new_step->count = old_step->count;
+        for (int i = 0; i < count; i++)
+            new_step->nodes_indexes[i] = old_step->nodes_indexes[i];
+        new_step->last = old_step->last;
+    }
+    else
+        new_step->count = 0;
+}
+
+void search_step_add (struct search_step* search_step, int value) {
+    search_step->nodes_indexes[search_step->count] = value;
+    search_step->count++;
+    search_step->last = value;
+}
+
+/**********************************************************************************************************************/
+
+enum drawing_style get_node_style (int index, struct search_step* search_step, enum ui_state screen) {
+    enum drawing_style node_style;
+    if (screen == INITIAL || screen == SPANNING_TREE)
+        node_style = STANDART;
+    else {
+        node_style = INACTIVE;
+        for (int j = 0; j < search_step->count; j++)
+            if (index == search_step->nodes_indexes[j]) {
+                node_style = ACTIVE;
+                break;
+            }
+    }
+    return node_style;
+}
+
+/**********************************************************************************************************************/
+
+enum drawing_style get_edge_style (int start, int end, int size, struct search_step* search_step,
+        enum ui_state screen, const boolean* spanning_tree_drawing_matrix) {
+    enum drawing_style edge_style;
+    switch (screen) {
+        case INITIAL:
+            edge_style = STANDART;
+            break;
+        case SPANNING_TREE:
+            edge_style = spanning_tree_drawing_matrix[start * size + end] ? STANDART : HIDDEN;
+            break;
+        case MAIN: {
+            edge_style = INACTIVE;
+            for (int i = 1; i < search_step->count; i += 2)
+                if (start == search_step->nodes_indexes[i - 1] && end == search_step->nodes_indexes[i]) {
+                    if (i == search_step->count - 1)
+                        edge_style = HIGHLIGHTED;
+                    else
+                        edge_style = ACTIVE;
+                    break;
+                }
+        }
+    }
+    return edge_style;
+}
+
+/**********************************************************************************************************************/
+
